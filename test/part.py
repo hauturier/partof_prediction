@@ -7,7 +7,7 @@
 import logging
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger('Example Kinships')
-
+import numpy as np
 from scipy.io.matlab import loadmat
 from scipy.sparse import lil_matrix
 from sktensor import rescal_als
@@ -32,6 +32,19 @@ def predict_rescal_als(T):
         P[:, :, k] = dot(A, dot(R[k], A.T))
     return P
 
+def accuracy(P, test_list):
+    test_acc = np.array([0.0, 0.0, 0.0, 0.0])
+    for row in test_list:
+        true_index = row[2]
+        predict_index = P[row[0],row[1],:].argmax()
+        
+        if true_index == predict_index:
+            test_acc[true_index] = test_acc[true_index] + 1
+    e = float(P.shape[0])
+    test_acc = test_acc / e
+    return 
+    pass
+
 def main():
     # Set logging
     logging.basicConfig(level=logging.INFO)
@@ -48,13 +61,11 @@ def main():
     
     _log.info('Datasize: %d x %d x %d | No. of classes: %d' % (
         T[0].shape + (len(T),) + (k,))
-    
-    result_tensor = predict_rescal_als(T)
-    
-    )
-    
+
     X = [lil_matrix(T[:, :, k]) for k in range(T.shape[2])]
+    result_tensor = predict_rescal_als(X)
     
+
     pass
 
 if __name__ == '__main__':
