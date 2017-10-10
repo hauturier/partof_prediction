@@ -12,3 +12,4 @@ from .ktensor import ktensor
 from .cp import als as cp_als
 from .tucker import hooi as tucker_hooi
 from .tucker import hooi as tucker_hosvd
+from .rescal import als as rescal_als
