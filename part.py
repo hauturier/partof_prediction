@@ -28,7 +28,7 @@ def predict_rescal_als(T):
          P: result dense tensor.
     '''
     A, R, _, _, _ = rescal_als(
-        T, 100, init='nvecs', conv=1e-3,
+        T, 100, init='similarity', conv=1e-3,
         lambda_A=10, lambda_R=10
     )
     n = A.shape[0]
