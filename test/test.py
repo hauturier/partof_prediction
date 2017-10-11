@@ -57,7 +57,7 @@ def innerfold(T, mask_idx, target_idx, e, k, sz):
 if __name__ == '__main__':
     # load data
     mat = loadmat('data/alyawarradata.mat')
-    K = array(mat['Rs'], np.float32)
+    K = array(mat['Rs'], np.float64)
     e, k = K.shape[0], K.shape[2]   
     SZ = e * e * k
 
