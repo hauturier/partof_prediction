@@ -35,6 +35,8 @@ def predict_rescal_als(T):
     P = np.zeros((n, n, len(R)))
     for k in range(len(R)):
         P[:, :, k] = np.dot(A, np.dot(R[k], A.T))
+    _log.info("Dtype of P is %s" % str(P.dtype))
+    print "-------"
     return P
 
 def accuracy(P, test_list):
@@ -57,12 +59,11 @@ def main():
     # Load matlab file
     tensor_mat_path = './data/PartTensor.mat'
     mat = h5py.File(tensor_mat_path)
-
     # Train tensor
     T = mat['TrainTensor'][:].T
     P = mat['TestTensorList'][:].T
 
-    e,k = T.shape[0], T.shape[2]
+    e, k = T.shape[0], T.shape[2]
 
     _log.info(T.shape)
     _log.info(P.shape)

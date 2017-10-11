@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import h5py
 import logging
 import time
 import numpy as np
@@ -162,6 +163,12 @@ def als(X, rank, **kwargs):
     _log.debug('Initializing A')
     if ainit == 'random':
         A = array(rand(n, rank), dtype=dtype)
+    elif ainit == 'similarity':
+        _log.info("init: similarity" )
+        mat = h5py.File("./data/A.mat")
+        A = mat["A"][:].T
+        if A.shape[1] != 0:
+            _log.error("A.shape[1] is wrong: %s" %str(A.shape[1]))
     elif ainit == 'nvecs':
         S = csr_matrix((n, n), dtype=dtype)
         for i in range(k):
