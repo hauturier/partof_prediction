@@ -1,4 +1,4 @@
-function fit = ADMM_findnew(R_all,R_train,R_test,P,rank)
+function fit = ADMM_find4(R_all,R_train,R_test,P,rank)
 % ----------initialize diary----------
 diary_path = './log/' + datestr(now) + '.txt';
 diary(diary_path);
@@ -23,7 +23,7 @@ MaxIter = 30;
 MSE = 0;
 
 convt = 1e-5; % Convergence tolerance
-fit = [];
+fit = zeros(1, MaxIter);
 oldfit = 0;
 test_num = [1699 1699 1699 1699];
 
@@ -123,19 +123,20 @@ for i=1:size(R_test,1)
     end
 end
 
-filename = ['finalresult',';',num2str(rank),';',num2str(MaxIter),';',
+filename = ['finalresult',';',num2str(rank),';',num2str(MaxIter),';', ...
            num2str(lambda1),';',num2str(lambda2),';',num2str(rho),'.txt'];
 fidresult_out = fopen(filename,'w');
 
 for i=1:size(Result,1)
-    [maxr,index]=max(Result(i,3:6));
+    [~,index]=max(Result(i,3:6));
     Result(i,4+2+1)=index;
     for j=1:size(Result(i,:),2)-1
         fprintf(fidresult_out,'%s\t',num2str(Result(i,j)));
     end
     fprintf(fidresult_out,'%s\n',num2str(Result(i,size(Result(i,:),2))));
-    %     fprintf(fidresult_out,'%s\n',num2str(index));
 end
+fclose(fidresult_out);
+
 accuracynum = 0;
 RelationAccs = zeros(1,4);
 for i =1:size(Result,1)
@@ -145,45 +146,19 @@ for i =1:size(Result,1)
     end
 end
 
-%                         MSE = sum(((test_num - RelationAccs)./test_num).^2)./length(test_num);
-% Accuracy = sum(RelationAccs./test_num)./length(test_num);
-Accuracy = min(RelationAccs./test_num);
-%                 if(MSE<max_mse)
-%                     max_num = accuracynum;
-%                     max_filename = filename;
-%                     max_iiiii=RelationAccs;
-%                     max_mse = MSE;
-%                 end
-if(Accuracy > ci_max)
-    ci_max_num = accuracynum;
-    ci_max_filename = filename;
-    ci_max_iiiii=RelationAccs;
-    ci_max = Accuracy;
-end
-fit_row = [MaxIter, rank, lambda1, lambda2, rho, cishu, RelationAccs, Accuracy];
-fit = [fit;fit_row];
-if(ci_max > max_acc)
-    max_num = ci_max_num;
-    max_filename = ci_max_filename;
-    max_iiiii=ci_max_iiiii;
-    max_acc = ci_max;
-end
-                    
+acc_each = accuracynum ./ test_num;
+acc_val = sum(accuracynum) ./ sum(test_num);
+
+disp(['the number of right relations is: ' num2str(accuracynum)]);
+disp(['Accuracy:  ' num2str(acc_val)]);
 disp('the number of right relations is:');
-disp(ci_max_filename);
-disp(ci_max_num);
-disp(ci_max_iiiii);
-disp(['Accuracy:  ' num2str(ci_max)]);
-disp('the number of right relations is:');
-disp(max_num);
+disp(RelationAccs);
 disp(max_filename);
 disp(max_iiiii);
-disp(['Accuracy:  ' num2str(max_acc)]);
+disp('Accuracy of each class:  ');
+disp(acc_each)
 disp('-----------------------------------------------------------------------------------------');
 save ResultTest Result;
 disp('end');
-fclose(fidresult_out);
-
-save fit fit
 
 end
