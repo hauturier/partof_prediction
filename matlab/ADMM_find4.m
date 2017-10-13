@@ -1,7 +1,5 @@
 function fit = ADMM_find4(R_all,R_train,R_test,P,rank)
 % ----------initialize diary----------
-diary_path = './log/' + datestr(now) + '.txt';
-diary(diary_path);
 diary on;
 % ----------Parameters----------
 singlewordnum = 16677;
@@ -28,9 +26,9 @@ oldfit = 0;
 test_num = [1699 1699 1699 1699];
 
 % ----------Initialize---------
-rank = 10;
+rank = 5;
 lambda1 = 1.55;
-lambda2 = 1e-5;
+lambda2 = 0.5;
 rho = 0.16;
 
 I = singlewordnum;
@@ -105,13 +103,13 @@ for iter=1:MaxIter
     B_bar=(B1+B2)/2;
     % ----------Computing fit----------
     fit(iter) = sqrt(sum((sum(A_bar(R_train(:,1),:).*B_bar(R_train(:,2),:).*C(R_train(:,3),:),2)...
-                -R_train(:,4)).^2)/length(R_train));
-    disp(fit);
+                -R_train(:,4)).^2)/length(R_train))
+    disp([num2str(iter) ':' num2str(fit(iter))]);
 
     if (oldfit - fit(iter)) < convt
         break;
     end
-    oldfit = fit;
+    oldfit = fit(iter);
 end
 
 Result = zeros(size(R_test,1),4+2+2);
@@ -146,7 +144,7 @@ for i =1:size(Result,1)
     end
 end
 
-acc_each = accuracynum ./ test_num;
+acc_each = RelationAccs ./ test_num;
 acc_val = sum(accuracynum) ./ sum(test_num);
 
 disp(['the number of right relations is: ' num2str(accuracynum)]);
@@ -156,9 +154,11 @@ disp(RelationAccs);
 disp(max_filename);
 disp(max_iiiii);
 disp('Accuracy of each class:  ');
-disp(acc_each)
+disp(acc_each);
+disp('The fit is :');
+disp(fit);
 disp('-----------------------------------------------------------------------------------------');
 save ResultTest Result;
 disp('end');
-
+diary off;
 end
