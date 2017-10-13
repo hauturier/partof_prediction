@@ -19,6 +19,7 @@ max_mse = 1000;
 max_num = 0;
 MaxIter = 30;
 MSE = 0;
+sim_mat = importdata('./data/tensorSimilarity_2.mat');
 
 convt = 1e-5; % Convergence tolerance
 fit = zeros(1, MaxIter);
@@ -103,13 +104,13 @@ for iter=1:MaxIter
     B_bar=(B1+B2)/2;
     % ----------Computing fit----------
     fit(iter) = sqrt(sum((sum(A_bar(R_train(:,1),:).*B_bar(R_train(:,2),:).*C(R_train(:,3),:),2)...
-                -R_train(:,4)).^2)/length(R_train))
+                -R_train(:,4)).^2)/length(R_train))+sqrt(sum(sum((sim_mat - A_bar * B_bar').^2)))
     disp([num2str(iter) ':' num2str(fit(iter))]);
 
     if (oldfit - fit(iter)) < convt
         break;
     end
-    oldfit = fit(iter);
+    oldfit = fit(iter)
 end
 
 Result = zeros(size(R_test,1),4+2+2);
