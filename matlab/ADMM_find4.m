@@ -17,7 +17,7 @@ max_filename = '';
 max_iiiii = 0;
 max_mse = 1000;
 max_num = 0;
-MaxIter = 30;
+MaxIter = 20;
 MSE = 0;
 sim_mat = importdata('./data/tensorSimilarity_2.mat');
 
@@ -27,9 +27,9 @@ oldfit = 0;
 test_num = [1699 1699 1699 1699];
 
 % ----------Initialize---------
-rank = 5;
+rank = 13;
 lambda1 = 1.55;
-lambda2 = 0.5;
+lambda2 = 0.1;
 rho = 0.16;
 
 I = singlewordnum;
@@ -104,13 +104,47 @@ for iter=1:MaxIter
     B_bar=(B1+B2)/2;
     % ----------Computing fit----------
     fit(iter) = sqrt(sum((sum(A_bar(R_train(:,1),:).*B_bar(R_train(:,2),:).*C(R_train(:,3),:),2)...
-                -R_train(:,4)).^2)/length(R_train))+sqrt(sum(sum((sim_mat - A_bar * B_bar').^2)))
-    disp([num2str(iter) ':' num2str(fit(iter))]);
+                -R_train(:,4)).^2)/length(R_train));
+%             +sqrt(sum(sum((sim_mat - A_bar * B_bar').^2))/(singlewordnum*singlewordnum));
+    disp([num2str(iter) ': ' num2str(fit(iter))]);
 
     if abs(oldfit - fit(iter)) < convt
         break;
     end
-    oldfit = fit(iter)
+    oldfit = fit(iter);
+    
+    Result = zeros(size(R_test,1),4+2+2);
+    Result(:,1:2) = R_test(:,1:2);
+    Result(:,4+2+2) = R_test(:,3);
+    for i=1:size(R_test,1)
+        for j=1:class_num
+            Result(i,j+2)=sum(A_bar(R_test(i,1),:).*B_bar(R_test(i,2),:).*C(j,:),2);
+        end
+    end
+    
+    for i=1:size(Result,1)
+        [~,index]=max(Result(i,3:6));
+        Result(i,4+2+1)=index;
+    end
+    
+    accuracynum = 0;
+    RelationAccs = zeros(1,4);
+    for i =1:size(Result,1)
+        if Result(i,4+2+1)==Result(i,4+2+2)
+            accuracynum = accuracynum+1;
+            RelationAccs(Result(i,4+2+2))=RelationAccs(Result(i,4+2+2))+1;
+        end
+    end
+    
+    acc_each = RelationAccs ./ test_num;
+    acc_val = sum(accuracynum) ./ sum(test_num);
+
+    disp(['the number of right relations is: ' num2str(accuracynum)]);
+    disp(['Accuracy:  ' num2str(acc_val)]);
+    disp('the number of right relations is:');
+    disp(RelationAccs);
+    disp('Accuracy of each class:  ');
+    disp(acc_each);    
 end
 
 Result = zeros(size(R_test,1),4+2+2);
@@ -152,12 +186,8 @@ disp(['the number of right relations is: ' num2str(accuracynum)]);
 disp(['Accuracy:  ' num2str(acc_val)]);
 disp('the number of right relations is:');
 disp(RelationAccs);
-disp(max_filename);
-disp(max_iiiii);
 disp('Accuracy of each class:  ');
 disp(acc_each);
-disp('The fit is :');
-disp(fit);
 disp('-----------------------------------------------------------------------------------------');
 save ResultTest Result;
 disp('end');
