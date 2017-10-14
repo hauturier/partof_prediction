@@ -107,7 +107,7 @@ for iter=1:MaxIter
                 -R_train(:,4)).^2)/length(R_train))+sqrt(sum(sum((sim_mat - A_bar * B_bar').^2)))
     disp([num2str(iter) ':' num2str(fit(iter))]);
 
-    if (oldfit - fit(iter)) < convt
+    if abs(oldfit - fit(iter)) < convt
         break;
     end
     oldfit = fit(iter)
