@@ -269,7 +269,7 @@ def _updateZ(A, P, lmbdaZ):
         else:
             Zn = dot(pinvAt.T, P[i])
         Z.append(Zn)
-    return Z
+    return  
 
 
 def _compute_fval(X, A, R, P, Z, lmbdaA, lmbdaR, lmbdaZ, normX):
