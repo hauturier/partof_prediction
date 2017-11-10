@@ -223,7 +223,7 @@ def _updateA(X, A, R, P, Z, lmbdaA, orthogonalize):
     E = zeros((rank, rank), dtype=A.dtype)
 
     AtA = dot(A.T, A)
-
+    
     for i in range(len(X)):
         F += X[i].dot(dot(A, R[i].T)) + X[i].T.dot(dot(A, R[i]))
         E += dot(R[i], dot(AtA, R[i].T)) + dot(R[i].T, dot(AtA, R[i]))

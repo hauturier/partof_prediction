@@ -31,12 +31,11 @@ def als(X, rank, **kwargs):
     ainit = kwargs.pop('init', _DEF_INIT)
     maxIter = kwargs.pop('maxIter', _DEF_MAXITER)
     conv = kwargs.pop('conv', _DEF_CONV)
-    lmbdaA = kwargs.pop('lambda_1', _DEF_LMBD1)
-    lmbdaR = kwargs.pop('lambda_2', _DEF_LMBD2)
-    lmbdaV = kwargs.pop('lambda_3', _DEF_LMBD3)
+    lmbda1 = kwargs.pop('lambda_1', _DEF_LMBD1)
+    lmbda2 = kwargs.pop('lambda_2', _DEF_LMBD2)
+    lmbda3 = kwargs.pop('lambda_3', _DEF_LMBD3)
     rho = kwargs.pop('rho',_DEF_RHO)
     func_compute_fval = kwargs.pop('compute_fval', _DEF_FIT_METHOD)
-    orthogonalize = kwargs.pop('orthogonalize', False)
     dtype = kwargs.pop('dtype', np.float)
 
     # ------------- check input ----------------------------------------------
@@ -54,10 +53,8 @@ def als(X, rank, **kwargs):
             #raise ValueError('X[%d] is not a sparse matrix' % i)
 
     if func_compute_fval is None:
-        if orthogonalize:
-            func_compute_fval = _compute_fval_orth
-        elif prod(X[0].shape) * len(X) > _DEF_NO_FIT:
-            _log.warn('For large tensors automatic computation of fit is disabled by default\nTo compute the fit, call rescal.als with "compute_fit=True"\nPlease note that this might cause memory and runtime problems')
+        if prod(X[0].shape) * len(X) > _DEF_NO_FIT:
+            _log.warn('For large tensors automatic computation of fit is disabled by default\nTo compute the fit, call admm.als with "compute_fit=True"\nPlease note that this might cause memory and runtime problems')
             func_compute_fval = None
         else:
             func_compute_fval = _compute_fval
@@ -77,9 +74,15 @@ def als(X, rank, **kwargs):
         if issparse(X[i]):
             X[i] = X[i].tocsr()
             X[i].sort_indices()
+    
+    # ---------- initialize theta -----------------------------------
+    theta_A1 = zeros((n,rank),dtype = dtype)
+    theta_A2 = zeros((n,rank),dtype = dtype)
+    theta_B1 = zeros((m,rank),dtype = dtype)
+    theta_B2 = zeros((m,rank),dtype = dtype)
 
     # ---------- initialize A1, A2, B1, B2 -----------------------------------
-    _log.debug('Initializing A')
+    _log.debug('Initializing A1, A2, B1, B2, A_bar, B_bar')
     if ainit == 'random':
         A1 = array(rand(n, rank), dtype=dtype)
         A2 = array(rand(n, rank), dtype=dtype)
@@ -90,13 +93,6 @@ def als(X, rank, **kwargs):
     B1 = _updateB1(X, A, R, P, Z, lmbdaA, orthogonalize)
     B_bar = B1
     B2 = _updateB2(X, A, R, P, Z, lmbdaA, orthogonalize)
-
-
-    # ---------- initialize theta -----------------------------------
-    theta_A1 = zeros((n,rank),dtype = dtype)
-    theta_A2 = zeros((n,rank),dtype = dtype)
-    theta_B1 = zeros((m,rank),dtype = dtype)
-    theta_B2 = zeros((m,rank),dtype = dtype)
 
     # ------- initialize R ---------------------------------------------
     R = _updateR(X, A1, B1, lmbdaR)
@@ -110,16 +106,23 @@ def als(X, rank, **kwargs):
     for itr in range(maxIter):
         tic = time.time()
         fitold = fit
-        A = _updateA1(X, A, R, P, Z, lmbdaA, orthogonalize)
-        A = _updateA2(X, A, R, P, Z, lmbdaA, orthogonalize)
-        A = _updateB1(X, A, R, P, Z, lmbdaA, orthogonalize)
-        A = _updateB2(X, A, R, P, Z, lmbdaA, orthogonalize)
+        A1 = _updateA1(X, B1, R, theta_A1, A_bar, lmbda1)
+        A2 = _updateA2(X, A, R, P, Z, lmbdaA, orthogonalize)
+        B1 = _updateB1(X, A, R, P, Z, lmbdaA, orthogonalize)
+        B2 = _updateB2(X, A, R, P, Z, lmbdaA, orthogonalize)
         R = _updateR(X, A, lmbdaR)
 
+        theta_A1 = _updateTheta(theta_A1, A1, A_bar, rho)
+        theta_A2 = _updateTheta(theta_A2, A2, A_bar, rho)
+        theta_B1 = _updateTheta(theta_B1, B1, A_bar, rho)
+        theta_B2 = _updateTheta(theta_B2, B2, B_bar, rho)
+
+        A_bar = _updateBar(A1, A2)
+        B_bar = _updateBar(B1, B2)
 
         # compute fit value
         if func_compute_fval is not None:
-            fit = func_compute_fval(X, A, R, P, Z, lmbdaA, lmbdaR, lmbdaV, normX)
+            fit = func_compute_fval(X, A, R, lmbdaA, lmbdaR, lmbdaV, normX)
         else:
             fit = np.Inf
 
@@ -133,8 +136,41 @@ def als(X, rank, **kwargs):
         ))
         if itr > 0 and fitchange < conv:
             break
-    return A, R, f, itr + 1, array(exectimes)
+    return A1, B1, R, f, itr + 1, array(exectimes)
 
+def _updateA1(X, B1, R, theta_A1, A_bar, lmbda1):
 
+    m, rank = A_bar.shape
+    F = zeros((n, rank), dtype=A_bar.dtype)
+    E = zeros((rank, rank), dtype=A_bar.dtype)
 
+    BtB = dot(B1.T, B1)
+    
+    for i in range(len(X)):
+        F += X[i].dot(dot(B1, R[i].T))
+        E += R[i].dot(dot(BtB, R[i].T))
+    
+    I = (rho + lmbda1) * eye(rank, dtype=A_bar.dtype)
+    J = rho * A_bar - theta_A1
+
+    A = solve(I + E.T, (F + J).T).T
+    pass
+
+def _updateA2(self, parameter_list):
+    pass
+
+def _updateB1(self, parameter_list):
+    pass
+
+def _updateB2(self, parameter_list):
+    pass
+
+def _updateR(self, parameter_list):
+    pass
+
+def _updateTheta(self, parameter_list):
+    pass
+
+def _updateBar():
+    pass
 
