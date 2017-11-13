@@ -2,7 +2,7 @@
 #
 # Author: HZG
 #
-# Part of relation prediction using RESCAL
+# Part of relation prediction using ADMM
 
 import sys
 sys.path.append("..")
@@ -12,29 +12,20 @@ import logging
 import numpy as np
 from scipy.io.matlab import loadmat
 from scipy.sparse import lil_matrix
-from sktensor import rescal_als
+from sktensor import admm_cls
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger('Example Kinships')
 
-def predict_rescal_als(T):
-    '''
-     RESCAL computing.
-
-     Parameter:
-         T: train sparse tensor.
-
-     Return:
-         P: result dense tensor.
-    '''
-    A, R, _, _, _ = rescal_als(
-        T, 100, init='similarity', conv=1e-3,
-        lambda_A=10, lambda_R=10
+def predict_admm_als(T, S, rank, lmbda1, lmbda2, lmbda3, rho):
+    A, B1, R, _, _, _ = admm_als(
+        T, S, rank, conv=1e-3,
+        lambda_1=lmbda1, lambda_2=lmbda2, lambda_3 = lmbda3, rho = rho
     )
     n = A.shape[0]
     P = np.zeros((n, n, len(R)))
     for k in range(len(R)):
-        P[:, :, k] = np.dot(A, np.dot(R[k], A.T))
+        P[:, :, k] = np.dot(A1, np.dot(R[k], B1.T))
     _log.info("Dtype of P is %s" % str(P.dtype))
     print "-------"
     return P
@@ -61,18 +52,25 @@ def main():
     mat = h5py.File(tensor_mat_path)
     # Train tensor
     T = mat['TrainTensor'][:].T
-    P = mat['TestTensorList'][:].T
+    S = mat['TestTensorList'][:].T
+    P = mat['Similarity'][:].T
 
     e, k = T.shape[0], T.shape[2]
-
     _log.info(T.shape)
-    _log.info(P.shape)
-
+    _log.info(S.shape)
     X = [lil_matrix(T[:, :, i]) for i in range(k)]
 
-    result_tensor = predict_rescal_als(X)
-    predict_acc, predict_res = accuracy(result_tensor, P)
-    print predict_acc
+    # Init parameters
+    rank = 10
+    lmbda1 = 10
+    lmbda2 = 0.1
+    lmbda3 = 10
+    rho = 0.5
+    # Computing
+    result_tensor = predict_rescal_als(X, P, rank, lmbda1, lmbda2, lmbda3, rho)
+    predict_acc, predict_res = accuracy(result_tensor, S)
+    print "rank: %d; lambda_1: %d; lambda_2: %d; lambda_3: %d; rho: %d." %(rank, lmbda1, lmbda2, lmbda3, rho)
+    print "predict_accuacy" + str(predict_acc)
     np.savetxt('./data/predict_result.txt', predict_res)
 
 if __name__ == '__main__':

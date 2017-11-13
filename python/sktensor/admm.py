@@ -202,8 +202,8 @@ def _updateBar(data_1, data_2):
 
 def _compute_fval(X, A1, R, B1, lmbda1, lmbda3, normX):
     """Compute fit for full slices"""
-    f = lmbda1 * norm(A) ** 2
+    f = lmbda1 * (norm(A) ** 2 + norm(B1) ** 2) / 2
     for i in range(len(X)):
         ARBt = dot(A1, dot(R[i], B1.T))
-        f += (norm(X[i] - ARBt) ** 2) / normX[i] + lmbdaR * norm(R[i]) ** 2
+        f += (norm(X[i] - ARBt) ** 2) / normX[i] + lmbdaR * norm(R[i]) ** 2 / 2
     return f
