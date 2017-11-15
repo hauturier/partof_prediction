@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import h5py
 import logging
 import time
 import numpy as np
@@ -65,7 +64,7 @@ def als(X, P, rank, **kwargs):
 
     _log.debug(
         '[Config] rank: %d | maxIter: %d | conv: %7.1e | lmbda: %7.1e' %
-        (rank, maxIter, conv, lmbdaA)
+        (rank, maxIter, conv, lmbda3)
     )
     _log.debug('[Config] dtype: %s / %s' % (dtype, X[0].dtype))
 
@@ -86,16 +85,17 @@ def als(X, P, rank, **kwargs):
     if ainit == 'random':
         A1 = array(rand(n, rank), dtype=dtype)
         A2 = array(rand(n, rank), dtype=dtype)
+        B1 = array(rand(m, rank), dtype=dtype)
     else:
         raise ValueError('Unknown init option ("%s")' % ainit)
 
     A_bar = A1
-    B1 = _updateB1(X, A, R, P, Z, lmbdaA, orthogonalize)
     B_bar = B1
-    B2 = _updateB2(X, A, R, P, Z, lmbdaA, orthogonalize)
+    B2 = _updateB2(P, A2, theta_B2, B_bar, lmbda2, rho)
 
     # ------- initialize R ---------------------------------------------
-    R = _updateR(X, A1, B1, lmbdaR)
+    R = _updateR(X, A1, B1, lmbda3)
+
 
     # precompute norms of X
     normX = [sum(M.data ** 2) for M in X]
@@ -149,7 +149,7 @@ def _updateA1(X, B1, R, theta_A1, A_bar, lmbda1, rho):
         E += R[i].dot(dot(BtB, R[i].T))
     I = (rho + lmbda1) * eye(rank, dtype=A_bar.dtype)
     J = rho * A_bar - theta_A1
-    A1 = solve(I + E.T, (F + J).T).T
+    A1 = solve((E + I).T, (F + J).T).T
     return A1
 
 def _updateA2(P, B2, theta_A2, A_bar, lmbda2, rho):
@@ -161,15 +161,15 @@ def _updateA2(P, B2, theta_A2, A_bar, lmbda2, rho):
 
 def _updateB1(X, A1, R, theta_B1, B_bar, lmbda1, rho):
     n, rank = B_bar.shape 
-    F = zeros((n, rank), dtype=A_bar.dtype)
-    E = zeros((rank, rank), dtype=A_bar.dtype)
+    F = zeros((n, rank), dtype=B_bar.dtype)
+    E = zeros((rank, rank), dtype=B_bar.dtype)
     AtA = dot(A1.T, A1) 
     for i in range(len(X)):
         F += X[i].T.dot(dot(A1, R[i]))
-        E += R[i].T.dot(dot(BtB, R[i]))
-    I = (rho + lmbda1) * eye(rank, dtype=A_bar.dtype)
+        E += R[i].T.dot(dot(AtA, R[i]))
+    I = (rho + lmbda1) * eye(rank, dtype=B_bar.dtype)
     J = rho * B_bar - theta_B1
-    B1 = solve(I + E.T, (F + J).T).T
+    B1 = solve((E + I).T, (F + J).T).T
     return B1
 
 def _updateB2(P, A2, theta_B2, B_bar, lmbda2, rho):
