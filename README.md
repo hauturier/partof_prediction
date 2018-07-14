@@ -2,5 +2,5 @@
 
 ------
 
-This project is to predict part-of relations using [REACAL](https://github.com/mnick/scikit-tensor).
+This project is to predict part-of relations using [RESCAL](https://github.com/mnick/scikit-tensor).
 
